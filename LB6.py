@@ -1,69 +1,61 @@
-import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.interpolate import approximate_taylor_polynomial
+from scipy.interpolate import lagrange
 
-# Визначимо символічну змінну x і функцію f(x)
-x = sp.symbols('x')
-f = sp.cos(4 * x) - x + 1
+# Дані точки даних
+x = np.array([-2, -1, 0, 1], dtype=float)
+y = np.array([-7, 4, 1, 2], dtype=float)
 
-# Обчисліть перші три похідні
-f1 = sp.diff(f, x)
-f2 = sp.diff(f1, x)
-f3 = sp.diff(f2, x)
+# Бали для оцінки
+points_to_evaluate = [-3, -1.5, 0.5, 1.5]
 
-# Відобразити похідні
-print("f'(x) =", f1)
-print("f''(x) =", f2)
-print("f'''(x) =", f3)
+# Функція для інтерполяції Лагранжа
+def lagrange_interpolation(x, y, x_test):
+    n = len(x)
+    p = np.zeros(n)  # Масив для зберігання значень поліномів L_i
+    for i in range(n):
+        # Обчисліть поліном L_i
+        p_i = 1
+        for j in range(n):
+            if i != j:
+                p_i *= (x_test - x[j]) / (x[i] - x[j])
+        p[i] = p_i
+    return np.dot(y, p)  # Повертає значення полінома
 
-# Обчислити значення функції та її похідних при x = 0
-x0 = 0
-f_x0 = f.subs(x, x0).evalf()
-f1_x0 = f1.subs(x, x0).evalf()
-f2_x0 = f2.subs(x, x0).evalf()
-f3_x0 = f3.subs(x, x0).evalf()
+# Обчислити значення функції у вказаних точках
+for idx, point in enumerate(points_to_evaluate):
+    f_point = lagrange_interpolation(x, y, point)
+    print(f"Значення функції у точці x_{idx+1} = {f_point:.4f}")
 
-# Побудуйте поліном Тейлора третього ступеня при x = 0
-T = f_x0 + f1_x0 * (x - x0) + (f2_x0 / 2) * (x - x0)**2 + (f3_x0 / 6) * (x - x0)**3
-print("f(0) =", f_x0.round(3))
-print("T(x) =", T.evalf())
+# Згенеруйте дані для побудови полінома Лагранжа
+x_new = np.linspace(np.min(x), np.max(x), 100)  # Точки для нанесення графіка
+y_new = [lagrange_interpolation(x, y, i) for i in x_new]
 
-# Перетворення символьного виразу на числову функцію для побудови
-f_lambdified = sp.lambdify(x, f, 'numpy')
-T_lambdified = sp.lambdify(x, T, 'numpy')
+# Побудуйте поліном Лагранжа та точки даних
+plt.plot(x, y, 'o', label="Дані точки")
+plt.plot(x_new, y_new, label="Lagrange Polynomial", color='blue')
+for point in points_to_evaluate:
+    plt.plot(point, lagrange_interpolation(x, y, point), 'ro')  # Поставте оцінені бали
 
-# Визначте значення x для побудови
-x_vals = np.linspace(-2, 2, 1000)
-f_vals = f_lambdified(x_vals)
-T_vals = T_lambdified(x_vals)
-
-# Побудуйте вихідну функцію та наближення полінома Тейлора
-plt.figure(figsize=(10, 6))
-plt.plot(x_vals, f_vals, label='f(x) = cos(4x) - x + 1', color='blue')
-plt.plot(x_vals, T_vals, label='Тейлор (3rd order)', color='red', linestyle='--')
-plt.xlabel("x")
-plt.ylabel("y")
-plt.title("Графік функції та її апроксимація поліномом Тейлора")
-plt.legend()
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Lagrange Polynomial_1')
 plt.grid(True)
+plt.legend()
 plt.show()
 
-# Побудуйте поліном Тейлора за допомогою scipy для порівняння
-def f_np(x):
-    return np.cos(4 * x) - x + 1
-
-# Використовуйте scipy, щоб побудувати поліном Тейлора третього ступеня
-degree = 3
-taylor_approx = approximate_taylor_polynomial(f_np, 0, degree, 1)
-
-# Побудуйте графік, використовуючи наближення полінома Тейлора Scipy
+# Перевірка за допомогою функції Лагранжа scipy
+f_lagrange = lagrange(x, y)
 plt.figure(figsize=(10, 6))
-plt.plot(x_vals, f_vals, label="if(x) curve", color='blue')
-plt.plot(x_vals, taylor_approx(x_vals), label=f"degree={degree}", color='green', linestyle='--')
-plt.legend(loc='upper left')
-plt.xlabel("x")
-plt.ylabel("y")
-plt.title("Графік функції та апроксимація полінома Тейлора (scipy)")
+plt.plot(x_new, f_lagrange(x_new), 'b', label="Scipy Lagrange Polynomial")
+plt.plot(x, y, 'ro', label="Дані точки")
+for idx, point in enumerate(points_to_evaluate):
+    plt.plot(point, lagrange_interpolation(x, y, point), 'ro')
+    plt.annotate(f"{lagrange_interpolation(x, y, point):.4f}", (point, lagrange_interpolation(x, y, point)), textcoords="offset points", xytext=(5,5), ha='center')
+
+plt.xlabel('x')
+plt.ylabel('y')
+plt.title('Lagrange Polynomial_2')
 plt.grid(True)
+plt.legend()
 plt.show()
